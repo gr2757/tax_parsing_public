@@ -1,0 +1,132 @@
+---
+title: "wide body mod"
+output: html_document
+date: "2024-07-24"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyr)
+library(dplyr)
+library(stringr)
+```
+
+```{r}
+df <- read.csv("/Users/gr2757/Dropbox/global_taxation/Code/trying_git/tax_parsing/full_file.csv")
+df$Tax.rate <- as.numeric(as.character(df$Tax.rate)) #turning everything numeric
+df <- df[,1:4]
+
+
+```
+
+
+
+
+turn df into wide
+
+```{r}
+df_wide <- df %>%
+  pivot_wider(names_from = Tax.Name, values_from = Tax.rate)
+
+
+
+colnames(df_wide) <- str_replace_all(colnames(df_wide), " ", "_")
+
+
+
+```
+
+
+```{r}
+
+write.csv(df_wide, "/Users/gr2757/Dropbox/global_taxation/Code/trying_git/tax_parsing/wide_dataframe.csv", row.names = FALSE)
+```
+
+
+
+
+Merging columns that have no overlap
+```{r}
+
+merged_df = df_wide
+
+#corporate income taxfra
+merged_df <- merged_df %>%
+  mutate(`Corporate_Income_Tax_Rate_(%)` = coalesce(`Corporate_Income_Tax_Rate_(%)`, `Corporate_Income_Tax_Rate_(%)_.`)) %>%
+  select(-`Corporate_Income_Tax_Rate_(%)_.`) 
+
+ merged_df <- merged_df %>%
+  mutate(`Corporate_Income_Tax_Rate_(%)` = coalesce(`Corporate_Income_Tax_Rate_(%)`, `Corporate_Tax_Rate`)) %>%
+  select(-`Corporate_Tax_Rate`)
+
+merged_df <- merged_df %>%
+  mutate(`Corporate_Income_Tax_Rate_(%)` = coalesce(`Corporate_Income_Tax_Rate_(%)`, `Corporate_Profits_Tax_Rate_(%)`)) %>%
+  select(-`Corporate_Profits_Tax_Rate_(%)`)
+ 
+merged_df <- merged_df %>%
+  mutate(`Corporate_Income_Tax_Rate_(%)` = coalesce(`Corporate_Income_Tax_Rate_(%)`, `Corporate_Profit_Tax_Rate_(%)`)) %>%
+  select(-`Corporate_Profit_Tax_Rate_(%)`)
+ 
+merged_df <- merged_df %>%
+  mutate(`Corporate_Income_Tax_Rate_(%)` = coalesce(`Corporate_Income_Tax_Rate_(%)`, `Corporate_Tax_Rate_(%)`)) %>%
+  select(-`Corporate_Tax_Rate_(%)`)
+
+merged_df <- merged_df %>%
+  mutate(`Corporate_Income_Tax_Rate_(%)` = coalesce(`Corporate_Income_Tax_Rate_(%)`, `Federal_Corporate_Income_Tax_Rate_(%)`)) %>%
+  select(-`Federal_Corporate_Income_Tax_Rate_(%)`)
+
+merged_df <- merged_df %>%
+  mutate(`Corporate_Income_Tax_Rate_(%)` = coalesce(`Corporate_Income_Tax_Rate_(%)`, `National_Corporate_Income_Tax_Rate_(%)`)) %>%
+  select(-`National_Corporate_Income_Tax_Rate_(%)`)
+
+###capital gains
+
+#Capital Gain Tax Rate (%)
+merged_df <- merged_df %>%
+  mutate(`Capital_Gains_Tax_Rate_(%)` = coalesce(`Capital_Gains_Tax_Rate_(%)`, `Capital_Gain_Tax_Rate_(%)`)) %>%
+  select(-`Capital_Gain_Tax_Rate_(%)`)
+
+#Capital Gains Tax
+merged_df <- merged_df %>%
+  mutate(`Capital_Gains_Tax_Rate_(%)` = coalesce(`Capital_Gains_Tax_Rate_(%)`, `Capital_Gains_Tax`)) %>%
+  select(-`Capital_Gains_Tax`)
+
+#Federal Capital Gains Tax Rate (%)
+merged_df <- merged_df %>%
+  mutate(`Capital_Gains_Tax_Rate_(%)` = coalesce(`Capital_Gains_Tax_Rate_(%)`, `Federal_Capital_Gains_Tax_Rate_(%)`)) %>%
+  select(-`Federal_Capital_Gains_Tax_Rate_(%)`)
+
+#Capital Gains Tax Rate
+merged_df <- merged_df %>%
+  mutate(`Capital_Gains_Tax_Rate_(%)` = coalesce(`Capital_Gains_Tax_Rate_(%)`, `Capital_Gains_Tax_Rate`)) %>%
+  select(-`Capital_Gains_Tax_Rate`)
+#Corporate Capital Gains Tax Rate (%)
+merged_df <- merged_df %>%
+  mutate(`Capital_Gains_Tax_Rate_(%)` = coalesce(`Capital_Gains_Tax_Rate_(%)`, `Corporate_Capital_Gains_Tax_Rate_(%)`)) %>%
+  select(-`Corporate_Capital_Gains_Tax_Rate_(%)`)
+
+
+merged_df <- merged_df %>% select(Country, Year, `Capital_Gains_Tax_Rate_(%)`, `Corporate_Income_Tax_Rate_(%)`, `Withholding_Tax_(%)_Dividends`)
+
+write.csv(merged_df, "/Users/gr2757/Dropbox/global_taxation/Code/trying_git/tax_parsing/merged_df.csv", row.names = FALSE)
+
+
+```
+
+```{r}
+#shortening columns:
+
+target_country <- "Iceland"
+
+# Step 1: Filter rows where Country is the target country
+temp_df <- df_wide[df_wide$Country == target_country, ]
+
+# Step 2: Remove columns that are entirely NA
+temp_df <- temp_df[, colSums(is.na(temp_df)) < nrow(temp_df)]
+
+# Display the result
+print(temp_df)
+
+```
+
+
